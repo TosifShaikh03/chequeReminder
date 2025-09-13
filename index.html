@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cheque Reminder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4ade80;
+            --danger: #f43f5e;
+            --warning: #f59e0b;
+            --gray: #6c757d;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            background-color: #f5f7fb;
+            color: var(--dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo i {
+            margin-right: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-name {
+            font-weight: 500;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #e11d48;
+        }
+
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+            padding: 2rem 0;
+        }
+
+        .auth-form {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            padding: 2rem;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .auth-form h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        .form-switch {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--gray);
+        }
+
+        .form-switch a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .main-content {
+            padding: 2rem 0;
+            flex-grow: 1;
+        }
+
+        .section-title {
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background-color: var(--primary);
+            border-radius: 2px;
+        }
+
+        .cheque-form {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .cheque-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .cheque-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            padding: 1.5rem;
+            transition: transform 0.3s ease;
+            border-top: 4px solid var(--primary);
+        }
+
+        .cheque-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .company-name {
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .card-body {
+            margin-bottom: 1.5rem;
+        }
+
+        .card-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .card-detail:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: var(--gray);
+        }
+
+        .detail-value {
+            font-weight: 500;
+        }
+
+        .amount {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .date {
+            color: var(--secondary);
+        }
+
+        .card-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: color 0.3s;
+        }
+
+        .btn-icon:hover {
+            color: var(--danger);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #ddd;
+        }
+
+        .empty-state p {
+            font-size: 1.2rem;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            background-color: var(--success);
+            box-shadow: var(--card-shadow);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background-color: var(--danger);
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .cheque-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .auth-form {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>ChequeReminder</span>
+                </div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Guest</span>
+                    <button id="logoutBtn" class="btn btn-danger" style="display: none;">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container auth-container" id="authContainer">
+        <div class="auth-form">
+            <h2 id="authTitle">Login to Your Account</h2>
+            <form id="authForm">
+                <div class="form-group" id="nameField" style="display: none;">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" class="form-control" placeholder="Enter your name">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" class="form-control" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="Enter your password">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-sign-in-alt"></i> <span id="authButtonText">Login</span>
+                </button>
+                <div class="form-switch">
+                    <span id="authSwitchText">Don't have an account?</span>
+                    <a id="authSwitchLink">Sign up</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="container main-content" id="mainContent" style="display: none;">
+        <h2 class="section-title">Add New Cheque</h2>
+        <div class="cheque-form">
+            <form id="chequeForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="company">Company Name</label>
+                        <input type="text" id="company" class="form-control" placeholder="Enter company name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Amount ($)</label>
+                        <input type="number" id="amount" class="form-control" placeholder="Enter amount" min="0"
+                            step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Cheque Date</label>
+                        <input type="date" id="date" class="form-control" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i> Add Cheque
+                </button>
+            </form>
+        </div>
+
+        <h2 class="section-title">Your Cheques</h2>
+        <div class="cheque-cards" id="chequeCards">
+            <div class="empty-state">
+                <i class="fas fa-receipt"></i>
+                <p>No cheques added yet</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+<script>
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyAfqturwH3YDGSL199gF9y9kq4rdNo_8fI",
+        authDomain: "cheque-remind.firebaseapp.com",
+        projectId: "cheque-remind",
+        storageBucket: "cheque-remind.firebasestorage.app",
+        messagingSenderId: "424212410693",
+        appId: "1:424212410693:web:9de1c41cdd79d5d2e30e2c",
+        measurementId: "G-LD77V5VCM7"
+    };
+
+    // Init Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // DOM Elements
+    const authContainer = document.getElementById('authContainer');
+    const mainContent = document.getElementById('mainContent');
+    const userName = document.getElementById('userName');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const authForm = document.getElementById('authForm');
+    const authTitle = document.getElementById('authTitle');
+    const authButtonText = document.getElementById('authButtonText');
+    const authSwitchText = document.getElementById('authSwitchText');
+    const authSwitchLink = document.getElementById('authSwitchLink');
+    const nameField = document.getElementById('nameField');
+    const nameInput = document.getElementById('name');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const chequeForm = document.getElementById('chequeForm');
+    const chequeCards = document.getElementById('chequeCards');
+    const notification = document.getElementById('notification');
+
+    // Auth state
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            userName.textContent = user.displayName || user.email;
+            logoutBtn.style.display = 'block';
+            authContainer.style.display = 'none';
+            mainContent.style.display = 'block';
+            loadCheques(user.uid);
+        } else {
+            userName.textContent = 'Guest';
+            logoutBtn.style.display = 'none';
+            authContainer.style.display = 'flex';
+            mainContent.style.display = 'none';
+            chequeCards.innerHTML =
+                '<div class="empty-state"><i class="fas fa-receipt"></i><p>No cheques added yet</p></div>';
+        }
+    });
+
+    // Switch login/signup
+    let isLoginMode = true;
+    authSwitchLink.addEventListener('click', () => {
+        isLoginMode = !isLoginMode;
+        if (isLoginMode) {
+            authTitle.textContent = 'Login to Your Account';
+            authButtonText.textContent = 'Login';
+            authSwitchText.textContent = "Don't have an account?";
+            authSwitchLink.textContent = 'Sign up';
+            nameField.style.display = 'none';
+        } else {
+            authTitle.textContent = 'Create New Account';
+            authButtonText.textContent = 'Sign up';
+            authSwitchText.textContent = "Already have an account?";
+            authSwitchLink.textContent = 'Login';
+            nameField.style.display = 'block';
+        }
+    });
+
+    // Auth form
+    authForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const email = emailInput.value;
+        const password = passwordInput.value;
+
+        if (isLoginMode) {
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => showNotification('Login successful!'))
+                .catch(err => showNotification(err.message, true));
+        } else {
+            const name = nameInput.value;
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCred => {
+                    return userCred.user.updateProfile({ displayName: name })
+                        .then(() => {
+                            return db.collection('users').doc(userCred.user.uid).set({
+                                name,
+                                email,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        });
+                })
+                .then(() => showNotification('Account created successfully!'))
+                .catch(err => showNotification(err.message, true));
+        }
+    });
+
+    // Logout
+    logoutBtn.addEventListener('click', () => {
+        auth.signOut()
+            .then(() => showNotification('Logged out successfully'))
+            .catch(err => showNotification(err.message, true));
+    });
+
+    // Add cheque
+    chequeForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const user = auth.currentUser;
+        if (!user) return showNotification('Please log in first', true);
+
+        const company = document.getElementById('company').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        const dateVal = document.getElementById('date').value;
+
+        db.collection('cheques').add({
+            userId: user.uid,
+            company,
+            amount,
+            date: firebase.firestore.Timestamp.fromDate(new Date(dateVal)),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        })
+        .then(() => {
+            showNotification('Cheque added successfully!');
+            chequeForm.reset();
+        })
+        .catch(err => showNotification(err.message, true));
+    });
+
+    // Load cheques
+    function loadCheques(userId) {
+        chequeCards.innerHTML =
+            '<div class="empty-state"><i class="fas fa-receipt"></i><p>Loading cheques...</p></div>';
+
+        db.collection('cheques')
+            .where('userId', '==', userId)
+            .orderBy('date', 'asc')
+            .onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    chequeCards.innerHTML =
+                        '<div class="empty-state"><i class="fas fa-receipt"></i><p>No cheques added yet</p></div>';
+                    return;
+                }
+
+                chequeCards.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const cheque = doc.data();
+                    const chequeId = doc.id;
+
+                    // ✅ Handle both Firestore Timestamps and old string dates
+                    let chequeDate;
+                    if (cheque.date && typeof cheque.date.toDate === "function") {
+                        chequeDate = cheque.date.toDate();
+                    } else {
+                        chequeDate = new Date(cheque.date);
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = 'cheque-card';
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <div class="company-name">${cheque.company}</div>
+                            <button class="btn-icon delete-btn" data-id="${chequeId}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-detail">
+                                <span class="detail-label">Amount:</span>
+                                <span class="detail-value amount">$${cheque.amount.toFixed(2)}</span>
+                            </div>
+                            <div class="card-detail">
+                                <span class="detail-label">Due Date:</span>
+                                <span class="detail-value date">${formatDate(chequeDate)}</span>
+                            </div>
+                            <div class="card-detail">
+                                <span class="detail-label">Days Left:</span>
+                                <span class="detail-value">${calculateDaysLeft(chequeDate)}</span>
+                            </div>
+                        </div>
+                    `;
+                    chequeCards.appendChild(card);
+                });
+            }, err => {
+                console.error("Error loading cheques:", err);
+                showNotification('Error loading cheques: ' + err.message, true);
+            });
+    }
+
+    // 🔥 Event delegation for delete
+    chequeCards.addEventListener('click', e => {
+        if (e.target.closest('.delete-btn')) {
+            const chequeId = e.target.closest('.delete-btn').dataset.id;
+            if (chequeId) deleteCheque(chequeId);
+        }
+    });
+
+    // Delete cheque
+    function deleteCheque(chequeId) {
+        if (!confirm('Are you sure you want to delete this cheque?')) return;
+        db.collection('cheques').doc(chequeId).delete()
+            .then(() => showNotification('Cheque deleted successfully'))
+            .catch(err => {
+                console.error("Delete error:", err);
+                showNotification(err.message, true);
+            });
+    }
+
+    // Helpers
+    function formatDate(dateObj) {
+        return dateObj.toLocaleDateString(undefined,
+            { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    function calculateDaysLeft(dateObj) {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const chequeDate = new Date(dateObj); chequeDate.setHours(0, 0, 0, 0);
+        const diff = Math.ceil((chequeDate - today) / (1000 * 60 * 60 * 24));
+        if (diff < 0) return `<span style="color:#ef4444;">Passed ${Math.abs(diff)} days ago</span>`;
+        if (diff === 0) return `<span style="color:#f59e0b;">Today</span>`;
+        if (diff <= 7) return `<span style="color:#f59e0b;">${diff} days</span>`;
+        return `<span style="color:#10b981;">${diff} days</span>`;
+    }
+
+    function showNotification(msg, isError = false) {
+        notification.textContent = msg;
+        notification.className = isError ? 'notification error' : 'notification';
+        notification.classList.add('show');
+        setTimeout(() => notification.classList.remove('show'), 3000);
+    }
+
+    // Restrict past dates
+    document.getElementById('date').min = new Date().toISOString().split('T')[0];
+</script>
+
+
+
+</body>
+
+</html>
